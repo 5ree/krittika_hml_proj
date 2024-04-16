@@ -137,6 +137,9 @@ class Simulator:
                     verbosity=self.verbose,
                 )
                 this_layer_sim.run()
+                
+                # Based on the partitioning scheme, post if any NoC transfer required (core-to-core only)
+                this_layer_sim.tracking_id = self.noc.post(layer_id, layer_id+1, 10000) #TODO LARTHAM this needs to be valid ofmap SRAM size 
                 self.single_layer_objects_list += [this_layer_sim]
 
                 #if self.verbose:
@@ -164,8 +167,10 @@ class Simulator:
 
                 this_layer_sim.gather_simd_report_items_across_cores()
 
+        # NoC simulation
         self.noc.deliver_all_txns()
         
+        # Memory simulation + Trace generation
         for lid in range(self.workload_obj.get_num_layers()):
             layer_params = self.workload_obj.get_layer_params(lid)
             if layer_params[0] in ["conv", "gemm", "activation"]:

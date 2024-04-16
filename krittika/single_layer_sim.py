@@ -140,7 +140,6 @@ class SingleLayerSim:
                                                     filter_opmat=filter_part,
                                                     ofmap_opmat=ofmap_part)
                 this_part_compute_node.calc_demand_matrices()
-                this_part_compute_node.tracking_id = self.noc_obj.post(69, 420, 80085) # LOLDBG: Fix the source - dst core id and transfer data (get_out_matrices size)
 
                 self.compute_node_list += [this_part_compute_node]
 
@@ -186,6 +185,7 @@ class SingleLayerSim:
         per_core_ifmap_bw, per_core_filter_bw, per_core_ofmap_bw\
             = self.config_obj.get_interface_bandwidths()
 
+        # TODO LARTHAM update the stall cycles to account for dependencies due to partitioning schemes
         for compute_node in self.compute_node_list:
 
             this_part_mem = double_buffered_scratchpad()
@@ -203,14 +203,14 @@ class SingleLayerSim:
             this_node_ifmap_demand_mat, this_node_filter_demand_mat, this_node_ofmap_demand_mat \
                 = compute_node.get_demand_matrices()
 
-            this_node_ifmap_fetch_mat, this_node_filter_fetch_mat = compute_node.get_prefetch_matrices()
+            this_node_ifmap_fetch_mat, this_node_filter_fetch_mat = compute_node.get_prefetch_matrices() # TODO LARTHAM need not fetch ifmap based on partitioning scheme support
             if (self.config_obj.get_bandwidth_use_mode()=="USER"):
                 this_part_mem.set_read_buf_prefetch_matrices(ifmap_prefetch_mat=this_node_ifmap_fetch_mat,
                                                          filter_prefetch_mat=this_node_filter_fetch_mat
                                                          )
             this_part_mem.service_memory_requests(this_node_ifmap_demand_mat,
                                                   this_node_filter_demand_mat,
-                                                  this_node_ofmap_demand_mat)
+                                                  this_node_ofmap_demand_mat) # TODO LARTHAM update to only service filter map
 
             self.all_node_mem_objects += [this_part_mem]
 
