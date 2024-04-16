@@ -24,6 +24,7 @@ class SingleLayerSim:
         self.op_mat_obj = operand_matrix()
         self.partitioner_obj = PartitionManager()
         self.config_obj = KrittikaConfig()
+        self.noc_obj    = None
 
         # Variables determining state
         self.layer_id = 0
@@ -83,6 +84,7 @@ class SingleLayerSim:
                    config_obj=KrittikaConfig(),
                    op_mat_obj=operand_matrix(),
                    partitioner_obj=PartitionManager(),
+                   noc_obj = None,
                    layer_id=0,
                    verbosity=True,
                    log_top_path='./'):
@@ -93,6 +95,7 @@ class SingleLayerSim:
         self.config_obj = config_obj
         self.op_mat_obj = op_mat_obj
         self.partitioner_obj = partitioner_obj
+        self.noc_obj = noc_obj
 
         self.layer_id = layer_id
 
@@ -105,7 +108,7 @@ class SingleLayerSim:
         self.compute_node_list = []
 
         self.run_compute_all_parts()
-        self.run_mem_sim_all_parts()
+        #self.run_mem_sim_all_parts()
 
     #
     def run_compute_all_parts(self):
@@ -137,6 +140,7 @@ class SingleLayerSim:
                                                     filter_opmat=filter_part,
                                                     ofmap_opmat=ofmap_part)
                 this_part_compute_node.calc_demand_matrices()
+                this_part_compute_node.tracking_id = self.noc_obj.post(69, 420, 80085) # LOLDBG: Fix the source - dst core id and transfer data (get_out_matrices size)
 
                 self.compute_node_list += [this_part_compute_node]
 
@@ -247,7 +251,8 @@ class SingleLayerSim:
             # Compute report
             num_compute = compute_system.get_num_compute()
             num_unit = compute_system.get_num_units()
-            total_cycles = memory_system.get_total_compute_cycles()
+            total_cycles = memory_system.get_total_compute_cycles() + self.noc_obj.get_latency(compute_system.tracking_id) # + DEPENDENCY BUBBLES LOLDBG
+            # Manish SRAM to SRAM may help with adding the dependency cycles
             
             stall_cycles = memory_system.get_stall_cycles()
             overall_util = (num_compute * 100) / (total_cycles * num_unit)

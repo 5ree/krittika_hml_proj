@@ -83,9 +83,9 @@ class Simulator:
 
         # FIXME: Just a simple example of the API
         self.noc.setup()
-        tracking_id = self.noc.post(69, 420, 80085)
-        self.noc.deliver_all_txns()
-        latency = self.noc.get_latency(tracking_id)
+        # tracking_id = self.noc.post(69, 420, 80085)
+        # self.noc.deliver_all_txns()
+        # latency = self.noc.get_latency(tracking_id)
 
         self.verbose = verbose
         self.trace_gen_flag = save_traces
@@ -131,6 +131,7 @@ class Simulator:
                     config_obj=self.config_obj,
                     op_mat_obj=this_layer_op_mat_obj,
                     partitioner_obj=self.partition_obj,
+                    noc_obj = self.noc,
                     layer_id=layer_id,
                     log_top_path=self.top_path,
                     verbosity=self.verbose,
@@ -138,10 +139,10 @@ class Simulator:
                 this_layer_sim.run()
                 self.single_layer_objects_list += [this_layer_sim]
 
-                if self.verbose:
-                    print("SAVING TRACES")
-                this_layer_sim.save_traces()
-                this_layer_sim.gather_report_items_across_cores()
+                #if self.verbose:
+                #    print("SAVING TRACES")
+                #this_layer_sim.save_traces()
+                #this_layer_sim.gather_report_items_across_cores()
             elif layer_params[0] in ["activation"]:
                 op_matrix = self.single_layer_objects_list[
                     layer_id - 1
@@ -162,6 +163,18 @@ class Simulator:
                 self.single_layer_objects_list += [this_layer_sim]
 
                 this_layer_sim.gather_simd_report_items_across_cores()
+
+        self.noc.deliver_all_txns()
+        
+        for lid in range(self.workload_obj.get_num_layers()):
+            layer_params = self.workload_obj.get_layer_params(lid)
+            if layer_params[0] in ["conv", "gemm", "activation"]:
+                this_layer_sim_obj = self.single_layer_objects_list[lid]
+                this_layer_sim_obj.run_mem_sim_all_parts()       
+                if self.verbose:
+                    print("SAVING TRACES")
+                this_layer_sim_obj.save_traces()
+                this_layer_sim_obj.gather_report_items_across_cores()
 
         self.runs_done = True
         self.generate_all_reports()
